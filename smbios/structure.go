@@ -158,19 +158,34 @@ func convertNative(ss []*smbios.Structure) []*Structure {
 	return data
 }
 
-// GetString todo
+// GetString returns the string at the given offset in the formatted data.
+// Returns "Unknown" if the string is not present (index = 0) or offset is out of bounds.
+// Returns "<BAD INDEX>" if the string index points to a non-existent string in the strings array.
+// This mimics the behavior of the dmidecode command-line tool.
 func (s *Structure) GetString(offset int) string {
-	if offset > s.FormattedCount()-1 {
+	// Check for negative offset
+	if offset < 0 {
+		return "<BAD INDEX>"
+	}
+
+	// Check if offset is within formatted data bounds
+	if offset >= s.FormattedCount() {
 		return "Unknown"
 	}
+
+	// Safe to access s.Formatted[offset] now
 	index := s.Formatted[offset]
 
+	// String index 0 means "not present" per SMBIOS spec
 	if index == 0 {
 		return "Unknown"
 	}
 
-	if len(s.Strings) < int(index) {
-		return "Unknown"
+	// Check if index-1 is within strings array bounds
+	// SMBIOS strings are 1-indexed, so we access s.Strings[index-1]
+	// Valid range: 1 <= index <= len(s.Strings)
+	if int(index) < 1 || int(index) > len(s.Strings) {
+		return "<BAD INDEX>"
 	}
 
 	return s.Strings[index-1]
